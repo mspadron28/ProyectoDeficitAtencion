@@ -3,7 +3,7 @@
 Este proyecto incluye un servidor backend en Flask y una aplicación frontend en React con Vite. La aplicación también usa MongoDB para el almacenamiento de datos.
 
 ## Instalación
-Clonamos el repocitorio
+Clonamos el repositorio
 ```
 git clone https://github.com/mspadron/ProyectoDeficitAtencion.git
 ```
