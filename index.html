@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        #videoContainer {
+            width: 640px;
+            height: 480px;
+            position: relative;
+            border: 1px solid #ccc;
+        }
+        #infoContainer {
+            margin-top: 20px;
+        }
+        #age, #gender {
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div id="videoContainer">
+        <video id="video" autoplay muted></video>
+    </div>
+    <div id="infoContainer">
+        <p id="age">Age: N/A</p>
+        <p id="gender">Gender: N/A</p>
+        <h3>Distraido y atención</h3>
+        <p id="bored">Bored: N/A</p>        
+        <p id="attentive">Attentive: N/A</p>
+        <h3>Inquietudes</h3>
+        <p id="tense">Tense: N/A</p>
+        <p id="uncomfortable">Uncomfortable: N/A</p>
+        <h3>Cambios de humor</h3>
+        <p id="happy">Happy: N/A</p>
+        <p id="sad">Sad: N/A</p>
+        <p id="frustrated">Frustrated: N/A</p>
+        <p id="angry">Angry: N/A</p>
+        <h3>Ansiedad</h3>
+        <p id="anxious">Anxious: N/A</p>
+        <h3>Confianza</h3>
+        <p id="confident">Confident: N/A</p>
+        <p id="selfConfident">Self Confident: N/A</p>
+
+    </div>
+
+    <script src="https://sdk.morphcast.com/mphtools/v1.1/mphtools.js" data-config="cameraPrivacyPopup, compatibilityUI, compatibilityAutoCheck"></script>
+    <script src="https://ai-sdk.morphcast.com/v1.16/ai-sdk.js"></script>
+    <script src="https://sdk.morphcast.com/emotion-statistics/v1.0-beta/script.js"></script>
+    <script>
+        const statsConfig = {
+            sendDatainterval: 5000,
+            tickInterval: 1000,
+            stopAfter: 300000,
+            licenseKey: "skc82a129bd09c23e391e9ef4b8985c82847b51fee8ba6"
+        };
+        const statisticsUploader = new MorphCastStatistics.StatisticsUploader(statsConfig);
+
+        CY.loader()
+            .licenseKey("skc82a129bd09c23e391e9ef4b8985c82847b51fee8ba6")
+            .addModule(CY.modules().FACE_AROUSAL_VALENCE.name, { smoothness: 0.70 })
+            .addModule(CY.modules().FACE_EMOTION.name, { smoothness: 0.40 })
+            .addModule(CY.modules().FACE_ATTENTION.name, { smoothness: 0.83 })
+            .addModule(CY.modules().FACE_WISH.name, { smoothness: 0.8 })
+            .addModule(CY.modules().FACE_POSE.name, { smoothness: 0.65 })
+            .addModule(CY.modules().FACE_AGE.name, { rawOutput: false })
+            .addModule(CY.modules().FACE_GENDER.name, { smoothness: 0.95, threshold: 0.70 })
+            .addModule(CY.modules().FACE_FEATURES.name, { smoothness: 0.90 })
+            .addModule(CY.modules().FACE_DETECTOR.name, { maxInputFrameSize: 320, smoothness: 0.83 })
+            .addModule(CY.modules().ALARM_MORE_FACES.name, { timeWindowMs: 3000, initialToleranceMs: 7000, threshold: 0.33 })
+            .addModule(CY.modules().ALARM_NO_FACE.name, { timeWindowMs: 10000, initialToleranceMs: 7000, threshold: 0.75 })
+            .addModule(CY.modules().DATA_AGGREGATOR.name, { initialWaitMs: 2000, periodMs: 1000 })
+            .addModule(CY.modules().FACE_POSITIVITY.name, { smoothness: 0.40, gain: 2, angle: 17 })
+            .load()
+            .then(async ({ start, stop }) => {
+                // Start the modules
+                await start();
+                await statisticsUploader.start();
+
+                setTimeout(async () => {
+                    await statisticsUploader.stop();
+                    await stop();
+                }, statsConfig.stopAfter);
+            });
+
+        // Display the video stream
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+            })
+            .catch(err => console.error('Error accessing webcam:', err));
+
+        window.addEventListener(CY.modules().DATA_AGGREGATOR.eventName, (evt) => {
+            const detail = evt.detail;
+            if (detail) {
+                if (detail.age && detail.age.avg !== undefined) {
+                    document.getElementById('age').textContent = `Age: ${detail.age.avg}`;
+                }
+
+                if (detail.gender_mostConfident && detail.gender_mostConfident.distribution) {
+                    const genderDistribution = detail.gender_mostConfident.distribution;
+                    const gender = Object.keys(genderDistribution)[0]; // Assumes there's only one key
+                    document.getElementById('gender').textContent = `Gender: ${gender}`;
+                }
+
+                //bored
+                if (detail.affects38_Bored && detail.affects38_Bored.avg !== undefined) {
+                    document.getElementById('bored').textContent = `Bored: ${detail.affects38_Bored.avg}`;
+                }
+
+                //attentive
+                if (detail.affects98_Attentive && detail.affects98_Attentive.avg !== undefined) {
+                    document.getElementById('attentive').textContent = `Attentive: ${detail.affects98_Attentive.avg}`;
+                }
+
+                //tense
+                if (detail.affects98_Tense && detail.affects98_Tense.avg !== undefined) {
+                    document.getElementById('tense').textContent = `Tense: ${detail.affects98_Tense.avg}`;
+                }
+
+                //uncomfortable
+                if (detail.affects38_Uncomfortable && detail.affects38_Uncomfortable.avg !== undefined) {
+                    document.getElementById('uncomfortable').textContent = `Uncomfortable: ${detail.affects38_Uncomfortable.avg}`;
+                }
+
+                //happy
+                if (detail.affects38_Happy && detail.affects38_Happy.avg !== undefined) {
+                    document.getElementById('happy').textContent = `Happy: ${detail.affects38_Happy.avg}`;
+                }
+
+                //sad
+                if (detail.affects38_Sad && detail.affects38_Sad.avg !== undefined) {
+                    document.getElementById('sad').textContent = `Sad: ${detail.affects38_Sad.avg}`;
+                }
+
+                //frustrated
+                if (detail.affects38_Frustrated && detail.affects38_Frustrated.avg !== undefined) {
+                    document.getElementById('frustrated').textContent = `Frustrated: ${detail.affects38_Frustrated.avg}`;
+                }
+
+                //angry
+                if (detail.affects38_Angry && detail.affects38_Angry.avg !== undefined) {
+                    document.getElementById('angry').textContent = `Angry: ${detail.affects38_Angry.avg}`;
+                }
+
+                //anxious
+                if (detail.affects38_Anxious && detail.affects38_Anxious.avg !== undefined) {
+                    document.getElementById('anxious').textContent = `Anxious: ${detail.affects38_Anxious.avg}`;
+                }
+
+                //confident
+                if (detail.affects98_Confident && detail.affects98_Confident.avg !== undefined) {
+                    document.getElementById('confident').textContent = `Confident: ${detail.affects98_Confident.avg}`;
+                }
+
+                //selfConfident
+                if (detail.affects98_Selfconfident && detail.affects98_Selfconfident.avg !== undefined) {
+                    document.getElementById('selfConfident').textContent = `Self Confident: ${detail.affects98_Selfconfident.avg}`;
+                }
+
+
+            }
+        });
+        //Atención
+        //Ejecutar test 18 - 25
+        //Evaluar del 1 al 100 de atención pero para que?
+        //Clasificadores desde el 50 para adelante es acptable
+        //Perdida de atención
+        //Con la matriz volver a comprobar en pepito su atención
+        //Reconocer si se hace bien el algoritmo
+        // Como evaluar si alguien tiene una perdida de atención
+        // La matriz se coonvierte en un datos
+        // Si el test tiene escalas mucho mejor
+        // Analizada la función ver la arquitectura a utilizar 
+        // Estar con morecast, mongo, web consumo del test
+        // Luego dar un enfoque, cuando ingreses a 
+        // Realizar el algoritmo y afrontar en que parametros para hacer el test
+        MphTools.CameraPrivacyPopup.setText({
+            "title": "Allow us to use your camera",
+            "description": "This experience is designed to be viewed with your camera on. The next screen will ask your consent to access data from your camera.",
+            "url": "https://YOUR_DOMAIN/<YOUR_PRIVACY_POLICY>"
+        });
+    </script>
+</body>
+</html>
